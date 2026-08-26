@@ -10,7 +10,9 @@
     "install:browser": "bash scripts/install-browser.sh",
     "test:browser": "node tests/browser-smoke.mjs",
     "test:x": "node --test tests/x-collector.test.mjs",
-    "collect:x": "node scripts/collect-x-post.mjs"
+    "collect:x": "node scripts/collect-x-post.mjs",
+    "test:x-account": "node --test tests/x-account.test.mjs",
+    "collect:x-account": "node scripts/collect-x-account.mjs"
   },
   "devDependencies": {
     "playwright": "^1.62.1",
