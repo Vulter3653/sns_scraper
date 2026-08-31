@@ -2,6 +2,14 @@
 
 > 각 항목은 당시 상태를 보존하는 역사 기록이다. 최신 canonical 상태는 `README.md`, `docs/project-blueprint.md`, `docs/progress.md`를 따른다.
 
+## Unreleased - 2026-08-31
+
+- Docs: Added `docs/agent-writing-rules.md` to formalize historical integrity, attribution, scope discipline, evidence language, and required record updates across agents. (codex)
+- Infra: Added PR governance and history-integrity validators plus a `Governance rules` workflow that checks changelog attribution, required progress updates, version consistency, and protected-history preservation. (codex)
+- Docs: Added a PR template and CODEOWNERS policy for maintainer-reviewed, scope-explicit integration into `main`. (codex)
+- Changed: Added `validate:governance`, `validate:history`, and `validate:records` npm scripts without changing collector dependencies or runtime behavior. (codex)
+- Preserved: Existing un-attributed historical records remain unchanged and are not retroactively rewritten. (codex)
+
 ## 0.1.0 - 2026-08-31
 
 - Added: X public single-post collector with URL validation, proxy-aware public HTML retrieval, JSON-LD/schema.org/Open Graph parsing, normalized output and selective Playwright fallback.

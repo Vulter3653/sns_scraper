@@ -5,6 +5,7 @@
 ## 현재 상태 — VERSION 0.1.0
 
 - **Repository:** 2026-08-31 PR #2의 collector implementation과 `HANDOFF.md`가 `main`에 병합되었다. collector 병합 commit은 `6ec2f689fe5b73c1e482f767cd938d6dc0a12336`이다.
+- **Governance:** canonical records는 `project-blueprint → AGENTS → agent-writing-rules → progress → changelog → debug-log` 순서로 확인한다. PR to `main`에는 changelog attribution, required progress update, version consistency와 protected-history integrity를 검사하는 자동 governance workflow가 구성되어 있다.
 - **X single post:** HTTP-first public metadata collector와 selective Playwright fallback이 구현됐다. `https://x.com/jack/status/20`의 실제 E2E 성공 이력이 있다.
 - **X account:** `twitter-cli` discovery adapter와 sequential single-post hydration이 구현되고 deterministic tests를 통과한 이력이 있다. explicit `TWITTER_AUTH_TOKEN`/`TWITTER_CT0`이 없어 live account E2E는 `SKIP` 상태다.
 - **YouTube:** yt-dlp single-video metadata adapter와 deterministic tests가 구현됐다. 마지막 Codex Cloud live 검증에서는 `www.youtube.com`, `youtube.com`, `youtu.be` CONNECT가 Envoy 403으로 차단돼 normalized live JSON은 미검증이다.
@@ -17,6 +18,13 @@
 ## Technical execution notes
 
 아래 항목은 당시 상태를 보존한다. 최신 판단은 위 현재 상태와 `project-blueprint.md`를 따른다.
+
+## 2026-08-31 — Automated governance enforcement added
+
+- Docs: Adopted the useful governance subset from `Vulter3653/paper-agent-project`: historical-log preservation, future agent attribution, explicit PR scope/records checklist, and maintainer ownership. Team-specific assignment maps and Firebase/Nix rules were intentionally not copied. (codex)
+- Infra: Added `scripts/validate-governance.mjs`, `scripts/validate-history-integrity.mjs`, `.github/workflows/governance.yml`, `.github/pull_request_template.md`, and `.github/CODEOWNERS`. (codex)
+- Validation: Governance now requires a changelog update for meaningful PRs, an attributed added changelog record, `docs/progress.md` for policy/runtime-sensitive changes, matching `VERSION`/`package.json`, and preservation of protected history headings/attribution. (codex)
+- Preserved: Existing collector implementation, UI, schemas, dependencies, platform status, historical un-attributed records, and current VERSION 0.1.0 remain unchanged. (codex)
 
 ## 2026-08-31 — Governance baseline introduced after collector merge
 

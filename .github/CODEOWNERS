@@ -1,0 +1,14 @@
+# Maintainer ownership for integration into main.
+# If branch protection is enabled, require CODEOWNER review for protected changes.
+
+* @Vulter3653
+
+AGENTS.md @Vulter3653
+docs/ @Vulter3653
+.github/ @Vulter3653
+collectors/ @Vulter3653
+lib/ @Vulter3653
+scripts/ @Vulter3653
+src/ @Vulter3653
+package.json @Vulter3653
+VERSION @Vulter3653
