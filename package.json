@@ -14,7 +14,10 @@
     "test:x-account": "node --test tests/x-account.test.mjs",
     "collect:x-account": "node scripts/collect-x-account.mjs",
     "test:youtube": "node --test tests/youtube-collector.test.mjs",
-    "collect:youtube": "node scripts/collect-youtube-video.mjs"
+    "collect:youtube": "node scripts/collect-youtube-video.mjs",
+    "validate:governance": "node scripts/validate-governance.mjs",
+    "validate:history": "node scripts/validate-history-integrity.mjs",
+    "validate:records": "npm run validate:governance && npm run validate:history"
   },
   "devDependencies": {
     "playwright": "^1.62.1",
