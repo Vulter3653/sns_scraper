@@ -61,10 +61,22 @@ account input
 → twitter-cli user-posts --json
 → post reference discovery
 → deduplicate
+→ optional known-ID filtering / bounded existing-ID stop
 → collectXPost() sequential hydration
 ```
 
-기본 limit 5, 최대 20, concurrency 1이다. live account verification에는 다음 두 credential이 모두 필요하다.
+기본 limit 5, 최대 20, concurrency 1이다. 기존 결과의 numeric post IDs를 `knownPostIds`로 전달하면 동일 ID는 다시 hydration하지 않는다. `stopOnExisting`은 opt-in이며, 명시한 `existingStopThreshold`만큼 연속 known ID를 관측하면 현재 discovery batch 처리를 중단한다. backend가 반환한 순서는 재정렬하지 않는다.
+
+CLI에서는 다음을 지원한다.
+
+```text
+--known-ids <newline-id-file>
+--stop-on-existing <1-20>
+```
+
+증분 옵션을 사용하지 않으면 기존 account collection 동작은 유지된다. Account JSON은 `collection_state`에 known-ID 관측 수, 검사 reference 수, 연속 known-ID 수, 조기 종료 여부와 `stop_reason`을 기록한다. 이 상태는 auditability를 위한 것이며 complete historical coverage를 의미하지 않는다.
+
+live account verification에는 다음 두 credential이 모두 필요하다.
 
 ```text
 TWITTER_AUTH_TOKEN
@@ -155,6 +167,8 @@ Playwright/Chrome 실행 가능 여부만 검증한다. 특정 플랫폼 live �
 - arbitrary URL fetch/SSRF
 - 명시적 요구 없는 media binary download
 
+이전 `Vulter3653/x_scrapper`의 browser/GraphQL collector는 증분 상태관리 설계를 참고할 수 있지만, GraphQL response capture, webdriver masking, hard-coded browser fingerprint, cookie injection 같은 접근은 현재 `sns_scraper` 보안 경계 때문에 이식하지 않는다.
+
 ## 8. 현재 blockers 및 deferred scope
 
 ### Blockers
@@ -165,6 +179,7 @@ Playwright/Chrome 실행 가능 여부만 검증한다. 특정 플랫폼 live �
 ### Deferred / not implemented
 
 - X keyword search production 기능
+- persistent account checkpoint/storage layer
 - YouTube channel/playlist/search/comments/transcript
 - Instagram collector
 - backend API

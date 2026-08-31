@@ -4,6 +4,10 @@
 
 ## Unreleased - 2026-08-31
 
+- Added: Reused the safe incremental-collection pattern from `Vulter3653/x_scrapper` by allowing X account collection to accept known post IDs, skip duplicate hydration, and optionally stop after a bounded number of consecutive known IDs. (codex)
+- Changed: X account results now expose an additive `collection_state` audit object with examined references, known posts seen, consecutive known IDs, early-stop status, and explicit `stop_reason`; default collection behavior remains unchanged when incremental options are omitted. (codex)
+- Added: `collect:x-account` now accepts `--known-ids <newline-id-file>` and opt-in `--stop-on-existing <1-20>` for bounded incremental account runs. (codex)
+- Security: Reviewed the legacy `x_scrapper` Playwright/GraphQL collector but intentionally did not copy GraphQL response capture, webdriver masking, hard-coded browser fingerprinting, or browser cookie injection because they conflict with the current `sns_scraper` security boundary. (codex)
 - Docs: Added `docs/agent-writing-rules.md` to formalize historical integrity, attribution, scope discipline, evidence language, and required record updates across agents. (codex)
 - Infra: Added PR governance and history-integrity validators plus a `Governance rules` workflow that checks changelog attribution, required progress updates, version consistency, and protected-history preservation. (codex)
 - Docs: Added a PR template and CODEOWNERS policy for maintainer-reviewed, scope-explicit integration into `main`. (codex)

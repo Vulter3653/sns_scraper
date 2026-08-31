@@ -2,6 +2,15 @@
 
 > 아래 항목은 발생 당시의 기술 기록이다. 과거 오류를 삭제하지 않으며 최신 상태는 [`project-blueprint.md`](project-blueprint.md)와 [`progress.md`](progress.md)를 따른다.
 
+## 2026-08-31 — Legacy x_scrapper workflow reviewed for safe code reuse
+
+- **Investigation:** `Vulter3653/x_scrapper`의 `src/x_scrapper/collection/x_scraper.py`와 ranked collection runner를 검토했다. 기존 구현은 tweet ID deduplication, known-ID stop, explicit `stop_reason`, incremental state/audit, bounded retries를 사용하지만 동시에 authenticated browser cookie injection, GraphQL response interception, webdriver masking과 hard-coded user-agent를 사용한다.
+- **Reusable finding:** known IDs를 별도 set으로 유지하고, 이미 수집된 ID는 다시 처리하지 않으며, 연속 기존 ID threshold를 만나면 긴 timeline 작업을 조기 종료하는 패턴은 backend와 무관하고 현재 account adapter에도 유효하다.
+- **Applied:** 현재 `twitter-cli → collectXPost()` 경로에 numeric `knownPostIds`, opt-in `stopOnExisting`, bounded `existingStopThreshold`, additive `collection_state.stop_reason`을 도입했다. CLI는 newline ID file을 읽는 `--known-ids`와 명시적 `--stop-on-existing`을 지원한다.
+- **Not applied:** GraphQL endpoint/response capture, webdriver masking, hard-coded browser fingerprint/user-agent, browser cookie injection은 현재 `sns_scraper`의 anti-bot/private-internal API 보안 경계와 충돌하므로 복사하지 않았다.
+- **Deferred:** `x_scrapper`의 atomic file checkpoint, per-account disk audit, retry orchestration과 batch runner는 storage/backend execution model이 정해진 뒤 재검토한다. 현재 stateless CLI에 임의 persistence 구조를 추가하지 않았다.
+- **Validation boundary:** 이번 변경은 deterministic account behavior를 강화하는 것으로, X account live E2E 상태를 `SKIP`에서 `PASS`로 승격하지 않는다. live 검증에는 여전히 explicit X credentials가 필요하다.
+
 ## 2026-08-31 — PR #2 branch divergence blocked direct mergeability
 
 - **Symptom:** PR #2의 head branch와 `main`이 공통 초기 commit 이후 각각 분기되어 GitHub가 `mergeable: false`로 표시했다. compare 기준 최신 branch는 collector 4개 핵심 commit을 보유했지만 기존 `main`의 UI merge history와 diverged 상태였다.

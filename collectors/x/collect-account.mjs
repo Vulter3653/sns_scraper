@@ -56,9 +56,46 @@ export function validateAccountLimit(value = 5) {
   return limit;
 }
 
+export function normalizeKnownPostIds(value = []) {
+  if (value == null) return new Set();
+  if (!Array.isArray(value) && !(value instanceof Set)) {
+    throw new XAccountCollectorError(
+      'INVALID_ACCOUNT_OPTIONS',
+      'knownPostIds must be an array or Set of numeric X post IDs.',
+    );
+  }
+
+  const ids = new Set();
+  for (const rawId of value) {
+    const postId = String(rawId ?? '').trim();
+    if (!/^\d+$/.test(postId)) {
+      throw new XAccountCollectorError(
+        'INVALID_ACCOUNT_OPTIONS',
+        'knownPostIds may contain only numeric X post IDs.',
+      );
+    }
+    ids.add(postId);
+  }
+  return ids;
+}
+
+export function validateExistingStopThreshold(value = 1) {
+  const threshold = typeof value === 'number' ? value : Number(value);
+  if (!Number.isInteger(threshold) || threshold < 1 || threshold > 20) {
+    throw new XAccountCollectorError(
+      'INVALID_ACCOUNT_OPTIONS',
+      'Existing-post stop threshold must be an integer from 1 to 20.',
+    );
+  }
+  return threshold;
+}
+
 export async function collectXAccount(input, options = {}) {
   const account = parseXAccount(input);
   const limit = validateAccountLimit(options.limit);
+  const knownPostIds = normalizeKnownPostIds(options.knownPostIds);
+  const stopOnExisting = options.stopOnExisting === true;
+  const existingStopThreshold = validateExistingStopThreshold(options.existingStopThreshold ?? 1);
   const discover = options.discover ?? discoverWithTwitterCli;
   const hydrate = options.collectPost ?? collectXPost;
   const references = await discover(account.username, limit, options.twitterCli);
@@ -68,7 +105,27 @@ export async function collectXAccount(input, options = {}) {
 
   const posts = [];
   const failures = [];
+  let examinedCount = 0;
+  let knownPostsSeen = 0;
+  let consecutiveExistingSeen = 0;
+  let stoppedOnExisting = false;
+  let stopReason = references.length === 0 ? 'no_references_discovered' : 'references_exhausted';
+
   for (const reference of references.slice(0, limit)) {
+    examinedCount += 1;
+    const postId = String(reference?.postId ?? '');
+    if (postId && knownPostIds.has(postId)) {
+      knownPostsSeen += 1;
+      consecutiveExistingSeen += 1;
+      if (stopOnExisting && consecutiveExistingSeen >= existingStopThreshold) {
+        stoppedOnExisting = true;
+        stopReason = 'existing_threshold_reached';
+        break;
+      }
+      continue;
+    }
+
+    consecutiveExistingSeen = 0;
     try {
       posts.push(await hydrate(reference.url));
     } catch (error) {
@@ -92,6 +149,14 @@ export async function collectXAccount(input, options = {}) {
     failed_count: failures.length,
     posts,
     failures,
+    collection_state: {
+      known_id_count: knownPostIds.size,
+      examined_count: examinedCount,
+      known_posts_seen: knownPostsSeen,
+      consecutive_existing_seen: consecutiveExistingSeen,
+      stopped_on_existing: stoppedOnExisting,
+      stop_reason: stopReason,
+    },
     collected_at: options.collectedAt ?? new Date().toISOString(),
   };
 }

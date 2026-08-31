@@ -9,7 +9,7 @@ X, YouTube, Instagram 공개 콘텐츠를 플랫폼별 collector로 수집하고
 | 영역 | 상태 | 비고 |
 | --- | --- | --- |
 | X single post | `PASS` | 공개 HTML HTTP-first + Playwright fallback, 실제 공개 post E2E 검증 이력 있음 |
-| X account adapter | `PASS` (deterministic) | twitter-cli discovery + 기존 single-post hydration |
+| X account adapter | `PASS` (deterministic) | twitter-cli discovery + 기존 single-post hydration + known-ID 증분/조기종료 상태 추적 |
 | X account live | `SKIP` | `TWITTER_AUTH_TOKEN`, `TWITTER_CT0` 미구성 이력 |
 | YouTube single video | `PASS` (deterministic) | yt-dlp adapter와 URL/schema tests |
 | YouTube live | `BLOCKED` | 마지막 Codex Cloud 검증에서 YouTube CONNECT 403 |
@@ -48,6 +48,22 @@ npm run collect:youtube -- "https://www.youtube.com/watch?v=M7lc1UVf-VE"
 
 X account live 명령은 자격증명 전제조건이 충족된 환경에서만 사용한다.
 
+이전 수집 결과의 post ID를 한 줄에 하나씩 저장한 파일이 있으면 account discovery batch에서 이미 알려진 post를 다시 hydration하지 않을 수 있다.
+
+```bash
+npm run collect:x-account -- "@jack" --limit 20 --known-ids ./known-x-post-ids.txt
+```
+
+`twitter-cli user-posts`의 반환 순서를 그대로 사용하는 명시적 증분 모드에서는 연속 기존 ID를 만났을 때 조기 종료할 수도 있다.
+
+```bash
+npm run collect:x-account -- "@jack" --limit 20 \
+  --known-ids ./known-x-post-ids.txt \
+  --stop-on-existing 3
+```
+
+`--stop-on-existing`은 opt-in이며 `--known-ids`와 함께만 사용한다. 기본 account collection 동작은 기존과 동일하다. 결과 JSON의 `collection_state`에 `known_posts_seen`, `stopped_on_existing`, `stop_reason`이 기록된다.
+
 ## Architecture
 
 ```text
@@ -60,6 +76,7 @@ Vite UI (현재 mock)
         │
         ├── X account
         │     twitter-cli discovery
+        │     → optional known-ID filtering / bounded early stop
         │     → collectXPost() hydration
         │
         └── YouTube single video
@@ -75,9 +92,10 @@ Vite UI (현재 mock)
 
 1. [`docs/project-blueprint.md`](docs/project-blueprint.md) — canonical 목표/범위/상태
 2. [`AGENTS.md`](AGENTS.md) — 작업 규칙
-3. [`docs/progress.md`](docs/progress.md) — 현재 상태와 실행 이력
-4. [`CHANGELOG.md`](CHANGELOG.md) — 버전 변경
-5. [`docs/debug-log.md`](docs/debug-log.md) — 오류와 blocker
+3. [`docs/agent-writing-rules.md`](docs/agent-writing-rules.md) — 기록 보존/attribution/PR 규칙
+4. [`docs/progress.md`](docs/progress.md) — 현재 상태와 실행 이력
+5. [`CHANGELOG.md`](CHANGELOG.md) — 버전 변경
+6. [`docs/debug-log.md`](docs/debug-log.md) — 오류와 blocker
 
 [`HANDOFF.md`](HANDOFF.md)는 2026-08-31 이전 개발을 정리한 역사적 인수인계 자료로 보존한다. 현재 상태와 충돌할 경우 위 canonical 문서가 우선한다.
 
