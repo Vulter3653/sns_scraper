@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="canonical" href="https://x.com/fixture_user/status/123456789" />
+    <meta property="og:url" content="https://x.com/fixture_user/status/123456789" />
+    <meta property="og:title" content="Fixture &amp; Author (@fixture_user) on X" />
+    <meta property="og:description" content="OG fallback &amp; decoded text" />
+    <script type="application/ld+json">{ malformed JSON is tolerated }</script>
+    <script type="application/ld+json">
+      {"@type":"SocialMediaPosting","url":"https://x.com/other/status/999","articleBody":"Wrong post"}
+    </script>
+    <script type="application/ld+json">
+      {
+        "@graph": [{
+          "@type": "SocialMediaPosting",
+          "@id": "https://x.com/i/status/123456789",
+          "articleBody": "Structured & decoded text\nSecond line",
+          "datePublished": "2026-08-26T12:00:00Z",
+          "author": {
+            "@type": "Person",
+            "name": "Fixture & Author",
+            "alternateName": "@fixture_user",
+            "url": "https://x.com/fixture_user"
+          },
+          "image": [
+            "https://pbs.twimg.com/media/fixture.jpg",
+            {"url":"https://pbs.twimg.com/media/fixture.jpg"}
+          ]
+        }]
+      }
+    </script>
+  </head>
+  <body></body>
+</html>
