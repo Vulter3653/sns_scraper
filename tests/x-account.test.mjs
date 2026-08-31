@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   collectXAccount,
+  normalizeKnownPostIds,
   parseXAccount,
   validateAccountLimit,
+  validateExistingStopThreshold,
 } from '../collectors/x/collect-account.mjs';
 import { XAccountCollectorError } from '../collectors/x/account-errors.mjs';
 import {
@@ -41,6 +43,21 @@ test('validates the default and bounded account limits', () => {
   for (const value of [0, -1, 'abc', 21, 1000, 1.5]) {
     assert.throws(() => validateAccountLimit(value), (error) => error.code === 'INVALID_ACCOUNT');
   }
+});
+
+test('normalizes known post IDs and validates the existing-post threshold', () => {
+  assert.deepEqual([...normalizeKnownPostIds(['20', 21, '20'])], ['20', '21']);
+  assert.equal(validateExistingStopThreshold('3'), 3);
+  for (const value of [0, -1, 'abc', 21, 1.5]) {
+    assert.throws(
+      () => validateExistingStopThreshold(value),
+      (error) => error.code === 'INVALID_ACCOUNT_OPTIONS',
+    );
+  }
+  assert.throws(
+    () => normalizeKnownPostIds(['20', 'bad-id']),
+    (error) => error.code === 'INVALID_ACCOUNT_OPTIONS',
+  );
 });
 
 test('parses twitter-cli JSON, removes duplicates, and creates canonical post URLs', () => {
@@ -110,4 +127,69 @@ test('keeps sequential hydration failures as partial account results', async () 
     code: 'EXTRACTION_FAILED',
     message: 'Fixture hydration failure',
   }]);
+  assert.deepEqual(result.collection_state, {
+    known_id_count: 0,
+    examined_count: 2,
+    known_posts_seen: 0,
+    consecutive_existing_seen: 0,
+    stopped_on_existing: false,
+    stop_reason: 'references_exhausted',
+  });
+});
+
+test('skips known IDs and stops after the configured consecutive-existing threshold', async () => {
+  const hydrationOrder = [];
+  const references = [
+    { postId: '30', username: 'jack', url: 'https://x.com/jack/status/30' },
+    { postId: '29', username: 'jack', url: 'https://x.com/jack/status/29' },
+    { postId: '28', username: 'jack', url: 'https://x.com/jack/status/28' },
+    { postId: '27', username: 'jack', url: 'https://x.com/jack/status/27' },
+  ];
+  const result = await collectXAccount('jack', {
+    limit: 4,
+    knownPostIds: ['29', '28'],
+    stopOnExisting: true,
+    existingStopThreshold: 2,
+    collectedAt: '2026-08-31T09:30:00.000Z',
+    discover: async () => references,
+    collectPost: async (url) => {
+      hydrationOrder.push(url);
+      return { schema_version: '1.0', platform: 'x', canonical_url: url, post_id: url.split('/').pop() };
+    },
+  });
+
+  assert.deepEqual(hydrationOrder, ['https://x.com/jack/status/30']);
+  assert.equal(result.collected_count, 1);
+  assert.equal(result.failed_count, 0);
+  assert.deepEqual(result.collection_state, {
+    known_id_count: 2,
+    examined_count: 3,
+    known_posts_seen: 2,
+    consecutive_existing_seen: 2,
+    stopped_on_existing: true,
+    stop_reason: 'existing_threshold_reached',
+  });
+});
+
+test('known IDs are skipped without early stop when stopOnExisting is disabled', async () => {
+  const hydrationOrder = [];
+  const references = [
+    { postId: '20', username: 'jack', url: 'https://x.com/jack/status/20' },
+    { postId: '21', username: 'jack', url: 'https://x.com/jack/status/21' },
+  ];
+  const result = await collectXAccount('jack', {
+    limit: 2,
+    knownPostIds: new Set(['20']),
+    discover: async () => references,
+    collectPost: async (url) => {
+      hydrationOrder.push(url);
+      return { schema_version: '1.0', platform: 'x', canonical_url: url, post_id: '21' };
+    },
+  });
+
+  assert.deepEqual(hydrationOrder, ['https://x.com/jack/status/21']);
+  assert.equal(result.collected_count, 1);
+  assert.equal(result.collection_state.known_posts_seen, 1);
+  assert.equal(result.collection_state.stopped_on_existing, false);
+  assert.equal(result.collection_state.stop_reason, 'references_exhausted');
 });
