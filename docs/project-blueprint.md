@@ -27,11 +27,25 @@ Normalized Schemas
 Storage / Export
 ```
 
-현재 repository는 아직 backend API/storage layer가 없으며 CLI collector와 mock Vite UI가 공존한다. Vite client가 external CLI나 credential을 직접 실행/보유하는 구조로 만들지 않는다.
+현재 repository에는 X single-post vertical slice를 위한 최소 Node HTTP API가 있으며 storage layer는 없다. Vite client는 `/api/x/post`를 통해 collector를 호출하고 external CLI나 credential을 직접 실행/보유하지 않는다.
+
+기능 개발은 vertical slice를 기본으로 한다.
+
+```text
+하나의 collector 기능 구현/검증
+→ deterministic PASS
+→ live E2E PASS
+→ 최소 API
+→ Vite 실제 연결 및 해당 mock 제거
+→ regression/records/merge
+→ 다음 기능
+```
+
+한 플랫폼의 모든 기능을 먼저 구현한 뒤 frontend 연결을 미루지 않는다.
 
 ## 3. 현재 구현 범위
 
-### X single post — `PASS`
+### X single post — collector/API/Vite `PASS`
 
 지원:
 
@@ -52,7 +66,7 @@ validated URL
 
 Playwright는 제한된 오류에 대한 fallback이다. HTTP 401/403 `HTTP_BLOCKED`에는 불필요한 browser retry를 하지 않는다.
 
-실제 공개 post E2E 검증 이력이 있다.
+현재 공개 HTML의 Open Graph `article:published_time`을 포함한 machine-readable timestamp를 지원한다. 실제 공개 post CLI, `POST /api/x/post`, Vite browser E2E 검증 이력이 있다. API는 strict JSON body와 기존 X URL validator를 사용하며 stack trace를 client에 반환하지 않는다.
 
 ### X account — deterministic `PASS`, live `SKIP`
 
@@ -112,11 +126,13 @@ yt-dlp
 
 Agent Reach 조사에서 OpenCLI + 사용자가 이미 로그인한 desktop Chrome session이 후보로 확인됐다. cloud 환경에서 자동 로그인, cookie DB 추출 또는 anti-bot 우회 방식으로 구현하지 않는다. 먼저 local/desktop execution model을 결정한다.
 
-### UI — `PROTOTYPE`
+### UI — X single post `PASS`, 나머지 `PROTOTYPE`
 
 `index.html`, `src/main.js`, `src/style.css`는 SNS Scope mock dashboard다.
 
-현재 표시되는 metrics, 최근 수집, 사용자 정보, `정상 연동` 상태는 hard-coded mock이며 실제 collector 결과가 아니다.
+X 탭의 단일 public status URL은 실제 backend/API 결과를 렌더링한다. author/text/timestamp/canonical URL과 metrics를 표시하며 missing metric은 `—`로 표현한다. 외부 text는 `textContent`로 렌더링한다.
+
+aggregate metrics와 최근 수집 목록은 명시적으로 demo 상태이며 persistence 근거가 아니다. YouTube UI는 collector-only, Instagram은 미구현으로 표시한다.
 
 ## 4. Normalization 원칙
 
@@ -174,7 +190,7 @@ Playwright/Chrome 실행 가능 여부만 검증한다. 특정 플랫폼 live �
 ### Blockers
 
 - X account live: explicit X credentials 필요
-- YouTube live: 마지막 Codex Cloud evidence에서 YouTube CONNECT 403
+- YouTube live: 현재 환경 connectivity는 HTTP 200이지만 external `yt-dlp`가 없어 live extraction은 `SKIP`; 이전 Codex Cloud CONNECT 403은 historical evidence로 보존
 
 ### Deferred / not implemented
 
@@ -182,21 +198,21 @@ Playwright/Chrome 실행 가능 여부만 검증한다. 특정 플랫폼 live �
 - persistent account checkpoint/storage layer
 - YouTube channel/playlist/search/comments/transcript
 - Instagram collector
-- backend API
+- X single-post 외 backend API
 - database/persistence
 - scheduler
 - frontend-collector integration
 
 Deferred 항목은 현재 구현된 것으로 표시하지 않는다.
 
-## 9. 다음 단계 승격 조건
+## 9. Vertical roadmap와 승격 조건
 
-플랫폼 기능을 다음 phase로 확장하기 전에 현재 phase가 해당 환경에서 실제로 검증되어야 한다.
+- Phase 1: X single post collector → live → API → Vite — `PASS`
+- Phase 2: YouTube single video collector → live → API → Vite
+- Phase 3: X account live validation → API → Vite
+- Phase 4: blocker와 사용자 우선순위에 따라 기능 하나씩 같은 방식으로 승격
 
-- X account 확장: credentials가 명시적으로 제공된 환경에서 제한된 live discovery + hydration 확인
-- YouTube 확장: public single-video live metadata + normalized JSON 확인
-- Instagram: local/desktop execution model과 credential boundary 확정
-- frontend integration: backend API contract 정의 후 연결
+각 phase는 deterministic, live CLI, API live, Vite live E2E를 구분한다. live 전제조건이 충족되지 않으면 다음 integration 단계로 승격하지 않는다. Instagram은 local/desktop execution model과 credential boundary를 먼저 확정한다.
 
 ## 10. 버전과 기록
 

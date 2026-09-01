@@ -130,7 +130,10 @@ export function parseXPostHtml(html, parsedUrl) {
   const text = [jsonLdPost?.articleBody, jsonLdPost?.text, microdataValue('articleBody'), og('og:description')]
     .find((value) => typeof value === 'string' && value.trim())?.trim() ?? null;
   const publishedAt = normalizeTimestamp(
-    jsonLdPost?.datePublished ?? microdataValue('datePublished') ?? microdataValue('dateCreated'),
+    jsonLdPost?.datePublished
+      ?? microdataValue('datePublished')
+      ?? microdataValue('dateCreated')
+      ?? og('article:published_time'),
   );
   if (!text || !publishedAt) {
     throw new XCollectorError('EXTRACTION_FAILED', 'Required public HTML text or published timestamp is missing.');

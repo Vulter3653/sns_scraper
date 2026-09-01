@@ -110,6 +110,24 @@ test('uses decoded Open Graph metadata with target microdata', () => {
   assert.equal(result.publishedAt, '2026-08-26T12:00:00.000Z');
 });
 
+test('uses the public Open Graph article timestamp when structured post metadata is absent', () => {
+  const parsedUrl = parseXPostUrl('https://x.com/jack/status/20');
+  const html = `
+    <link rel="canonical" href="https://x.com/jack/status/20">
+    <meta property="og:url" content="https://x.com/jack/status/20">
+    <meta property="og:title" content="jack (@jack) on X">
+    <meta property="og:description" content="just setting up my twttr">
+    <meta property="article:published_time" content="2006-03-21T20:50:14.000Z">`;
+
+  assert.deepEqual(parseXPostHtml(html, parsedUrl), {
+    displayName: 'jack',
+    username: 'jack',
+    text: 'just setting up my twttr',
+    publishedAt: '2006-03-21T20:50:14.000Z',
+    media: [],
+  });
+});
+
 test('fails when required public metadata is missing', () => {
   const parsedUrl = parseXPostUrl('https://x.com/fixture_user/status/42');
   const html = '<meta property="og:url" content="https://x.com/fixture_user/status/42">';

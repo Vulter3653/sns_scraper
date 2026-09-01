@@ -4,6 +4,11 @@
 
 ## Unreleased - 2026-08-31
 
+- Fixed: Added support for X public Open Graph `article:published_time`, restoring HTTP-first live extraction without browser or private API workarounds. (codex)
+- Added: Added a dependency-free `POST /api/x/post` backend contract with strict request validation, sanitized error mapping, and deterministic API coverage. (codex)
+- Added: Connected the Vite X tab to actual single-post collection with loading, error, safe result rendering, canonical links, and unknown metrics displayed as `—`. (codex)
+- Changed: Adopted collector → live → API → Vite vertical slices and clearly marked remaining dashboard aggregates and platform surfaces as demo/unconnected. (codex)
+- Validation: Passed live X CLI, live API, and live Vite browser E2E for `https://x.com/jack/status/20` while preserving X account and YouTube deterministic regressions. (codex)
 - Added: Reused the safe incremental-collection pattern from `Vulter3653/x_scrapper` by allowing X account collection to accept known post IDs, skip duplicate hydration, and optionally stop after a bounded number of consecutive known IDs. (codex)
 - Changed: X account results now expose an additive `collection_state` audit object with examined references, known posts seen, consecutive known IDs, early-stop status, and explicit `stop_reason`; default collection behavior remains unchanged when incremental options are omitted. (codex)
 - Added: `collect:x-account` now accepts `--known-ids <newline-id-file>` and opt-in `--stop-on-existing <1-20>` for bounded incremental account runs. (codex)

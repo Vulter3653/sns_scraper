@@ -2,6 +2,14 @@
 
 > 아래 항목은 발생 당시의 기술 기록이다. 과거 오류를 삭제하지 않으며 최신 상태는 [`project-blueprint.md`](project-blueprint.md)와 [`progress.md`](progress.md)를 따른다.
 
+## 2026-09-01 — X HTTP-first live regression caused by public metadata field change
+
+- **Symptom:** curl and Node received HTTP 200 for `https://x.com/jack/status/20`, but `collect:x` returned `NAVIGATION_FAILED` after parser fallback.
+- **Evidence:** Current public HTML contained canonical/OG target URL, author, description text, and `article:published_time=2006-03-21T20:50:14.000Z`, but no JSON-LD `SocialMediaPosting`, schema.org microdata, or `datePublished`. The parser therefore raised `EXTRACTION_FAILED`; Playwright fallback then failed navigation with `net::ERR_HTTP_RESPONSE_CODE_FAILURE`.
+- **Root cause:** The HTTP-first parser did not recognize the public Open Graph article timestamp even though the required machine-readable value was present.
+- **Resolution:** Added `article:published_time` as the final timestamp source after JSON-LD and microdata. No selectors, GraphQL, cookies, stealth, proxy rotation, or TLS bypass were added.
+- **Validation:** Deterministic OG-only regression, live CLI stdout assertions, actual API response, and Vite browser E2E all returned `post_id=20`, `author.username=jack`, the expected text, and the expected timestamp. (codex)
+
 ## 2026-08-31 — Legacy x_scrapper workflow reviewed for safe code reuse
 
 - **Investigation:** `Vulter3653/x_scrapper`의 `src/x_scrapper/collection/x_scraper.py`와 ranked collection runner를 검토했다. 기존 구현은 tweet ID deduplication, known-ID stop, explicit `stop_reason`, incremental state/audit, bounded retries를 사용하지만 동시에 authenticated browser cookie injection, GraphQL response interception, webdriver masking과 hard-coded user-agent를 사용한다.
