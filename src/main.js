@@ -1,4 +1,5 @@
 import './style.css';
+import { bindXPostFeature } from './x-post-feature.js';
 
 const icons = {
   grid: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>',
@@ -49,16 +50,42 @@ document.querySelector('#app').innerHTML = `
       </form>
     </section>
 
+    <section class="x-live-panel" id="x-result" aria-live="polite">
+      <div class="x-live-heading">
+        <div><span class="live-badge">LIVE</span><h3>X 단일 게시물</h3></div>
+        <p data-x-status>X 탭에서 공개 단일 게시물 URL을 입력하세요.</p>
+      </div>
+      <div class="x-live-error" data-x-error hidden>
+        <strong data-x-error-code></strong>
+        <span data-x-error-message></span>
+      </div>
+      <article class="x-post-result" data-x-result hidden>
+        <header>
+          <div><strong data-x-display-name></strong><span data-x-username></span></div>
+          <time data-x-published-at></time>
+        </header>
+        <p data-x-text></p>
+        <dl>
+          <div><dt>답글</dt><dd data-x-metric="reply_count">—</dd></div>
+          <div><dt>재게시</dt><dd data-x-metric="repost_count">—</dd></div>
+          <div><dt>좋아요</dt><dd data-x-metric="like_count">—</dd></div>
+          <div><dt>북마크</dt><dd data-x-metric="bookmark_count">—</dd></div>
+          <div><dt>조회</dt><dd data-x-metric="view_count">—</dd></div>
+        </dl>
+        <a data-x-canonical-url target="_blank" rel="noopener noreferrer"></a>
+      </article>
+    </section>
+
     <section class="metrics">
-      <article><div class="metric-icon violet">${icons.trend}</div><div><span>전체 수집 콘텐츠</span><strong>24,892</strong><small><b>↗ 12.5%</b> 지난달 대비</small></div><div class="spark violet-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
-      <article><div class="metric-icon red">▶</div><div><span>YouTube</span><strong>8,420</strong><small><b>↗ 8.2%</b> 지난달 대비</small></div><div class="spark red-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
-      <article><div class="metric-icon dark">𝕏</div><div><span>X (Twitter)</span><strong>10,284</strong><small><b>↗ 16.4%</b> 지난달 대비</small></div><div class="spark dark-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
-      <article><div class="metric-icon pink">◎</div><div><span>Instagram</span><strong>6,188</strong><small><b>↗ 9.8%</b> 지난달 대비</small></div><div class="spark pink-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+      <article><div class="metric-icon violet">${icons.trend}</div><div><span>전체 수집 콘텐츠 · 데모</span><strong>24,892</strong><small>실제 저장소 미연결</small></div><div class="spark violet-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+      <article><div class="metric-icon red">▶</div><div><span>YouTube · 데모</span><strong>8,420</strong><small>collector only</small></div><div class="spark red-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+      <article><div class="metric-icon dark">𝕏</div><div><span>X aggregate · 데모</span><strong>10,284</strong><small>단일 게시물만 실제 연결</small></div><div class="spark dark-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+      <article><div class="metric-icon pink">◎</div><div><span>Instagram · 데모</span><strong>6,188</strong><small>미구현</small></div><div class="spark pink-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
     </section>
 
     <section class="content-grid">
       <div class="recent">
-        <div class="section-head"><div><h3>최근 수집</h3><p>가장 최근에 수집한 프로젝트예요.</p></div><button>전체보기 ${icons.chevron}</button></div>
+        <div class="section-head"><div><h3>최근 수집 · 데모</h3><p>저장 기능은 아직 연결되지 않았습니다.</p></div><button>전체보기 ${icons.chevron}</button></div>
         <div class="collection-list">
           <article><div class="collection-icon ai">AI</div><div class="collection-main"><b>생성형 AI 트렌드</b><span>오늘, 오후 2:32 · 3개 채널</span></div><div class="channel-stack"><i class="c-x">𝕏</i><i class="c-y">▶</i><i class="c-i">◎</i></div><strong>1,284 <small>건</small></strong><span class="status">수집 완료</span><button>${icons.chevron}</button></article>
           <article><div class="collection-icon brand">BM</div><div class="collection-main"><b>2026 브랜드 마케팅</b><span>어제, 오전 11:08 · 2개 채널</span></div><div class="channel-stack"><i class="c-y">▶</i><i class="c-i">◎</i></div><strong>856 <small>건</small></strong><span class="status">수집 완료</span><button>${icons.chevron}</button></article>
@@ -67,9 +94,9 @@ document.querySelector('#app').innerHTML = `
       </div>
       <aside class="sources" id="sources">
         <div class="section-head"><div><h3>채널 연동</h3><p>수집 채널 상태를 확인하세요.</p></div><button>${icons.settings}</button></div>
-        <div class="source-row"><i class="c-x">𝕏</i><div><b>X (Twitter)</b><span><em></em>정상 연동</span></div><strong>10.2K</strong></div>
-        <div class="source-row"><i class="c-y">▶</i><div><b>YouTube</b><span><em></em>정상 연동</span></div><strong>8.4K</strong></div>
-        <div class="source-row"><i class="c-i">◎</i><div><b>Instagram</b><span><em></em>정상 연동</span></div><strong>6.1K</strong></div>
+        <div class="source-row"><i class="c-x">𝕏</i><div><b>X (Twitter)</b><span><em></em>단일 게시물 사용 가능 · 계정 credential 필요</span></div><strong>LIVE</strong></div>
+        <div class="source-row pending"><i class="c-y">▶</i><div><b>YouTube</b><span><em></em>collector only · UI 미연결</span></div><strong>개발 중</strong></div>
+        <div class="source-row pending"><i class="c-i">◎</i><div><b>Instagram</b><span><em></em>미구현</span></div><strong>미구현</strong></div>
         <button class="manage">연동 채널 관리하기 ${icons.arrow}</button>
       </aside>
     </section>
@@ -88,14 +115,28 @@ document.querySelectorAll('.suggestions button').forEach(button => button.addEve
   document.querySelector('.search-panel input').value = button.textContent;
 }));
 
-document.querySelector('.search-panel').addEventListener('submit', event => {
-  event.preventDefault();
-  const query = event.currentTarget.querySelector('input').value;
-  const source = document.querySelector('.source-tabs .selected').textContent.trim();
-  const toast = document.querySelector('.toast');
-  toast.querySelector('span').textContent = `“${query}” · ${source} 채널`;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 3200);
+const form = document.querySelector('.search-panel');
+bindXPostFeature({
+  form,
+  input: form.querySelector('input'),
+  getSelectedSource: () => document.querySelector('.source-tabs .selected').dataset.source,
+  view: {
+    panel: document.querySelector('.x-live-panel'),
+    status: document.querySelector('[data-x-status]'),
+    result: document.querySelector('[data-x-result]'),
+    error: document.querySelector('[data-x-error]'),
+    errorCode: document.querySelector('[data-x-error-code]'),
+    errorMessage: document.querySelector('[data-x-error-message]'),
+    displayName: document.querySelector('[data-x-display-name]'),
+    username: document.querySelector('[data-x-username]'),
+    text: document.querySelector('[data-x-text]'),
+    publishedAt: document.querySelector('[data-x-published-at]'),
+    canonicalUrl: document.querySelector('[data-x-canonical-url]'),
+    submit: form.querySelector('label button'),
+    metrics: Object.fromEntries(
+      [...document.querySelectorAll('[data-x-metric]')].map((element) => [element.dataset.xMetric, element]),
+    ),
+  },
 });
 
 document.querySelector('.new-search').addEventListener('click', () => {

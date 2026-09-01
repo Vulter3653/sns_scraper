@@ -2,20 +2,21 @@
 
 X, YouTube, Instagram 공개 콘텐츠를 플랫폼별 collector로 수집하고 하나의 웹 UI에서 사용하는 프로젝트다.
 
-현재 `main`에는 X와 YouTube의 초기 collector 및 Vite UI scaffold가 들어 있다. Instagram과 실제 frontend-backend 연결은 아직 구현되지 않았다.
+현재 X single-post는 collector, minimal backend API, Vite UI까지 실제 연결됐다. X account와 YouTube는 collector-only이며 Instagram은 구현되지 않았다.
 
 ## Current status
 
 | 영역 | 상태 | 비고 |
 | --- | --- | --- |
-| X single post | `PASS` | 공개 HTML HTTP-first + Playwright fallback, 실제 공개 post E2E 검증 이력 있음 |
+| X single post | `PASS` | 공개 HTML HTTP-first → `POST /api/x/post` → Vite 실제 결과, live UI E2E 검증 |
 | X account adapter | `PASS` (deterministic) | twitter-cli discovery + 기존 single-post hydration + known-ID 증분/조기종료 상태 추적 |
 | X account live | `SKIP` | `TWITTER_AUTH_TOKEN`, `TWITTER_CT0` 미구성 이력 |
 | YouTube single video | `PASS` (deterministic) | yt-dlp adapter와 URL/schema tests |
-| YouTube live | `BLOCKED` | 마지막 Codex Cloud 검증에서 YouTube CONNECT 403 |
+| YouTube live | `SKIP` | 현재 hostname connectivity는 HTTP 200이나 yt-dlp 미설치 환경에서 미실행 |
 | Instagram | `NOT IMPLEMENTED` | local/desktop execution model 검토 필요 |
-| Vite UI | `PROTOTYPE` | mock 데이터와 mock 연동 상태, collector 미연결 |
-| Backend API / DB / persistence | `NOT IMPLEMENTED` | 향후 phase |
+| Vite UI | `PARTIAL PASS` | X single-post는 실제 연결; aggregate/recent는 demo, 타 플랫폼 미연결 |
+| Backend API | `PARTIAL PASS` | X single-post endpoint만 구현 |
+| DB / persistence | `NOT IMPLEMENTED` | 응답 결과를 저장하지 않음 |
 
 현재 상태의 세부 기준은 [`docs/project-blueprint.md`](docs/project-blueprint.md)와 [`docs/progress.md`](docs/progress.md)를 따른다.
 
@@ -39,12 +40,23 @@ npm run test:browser
 npm run test:x
 npm run test:x-account
 npm run test:youtube
+npm run test:api
+npm run test:ui
 npm run build
 
 npm run collect:x -- "https://x.com/jack/status/20"
 npm run collect:x-account -- "@jack" --limit 3
 npm run collect:youtube -- "https://www.youtube.com/watch?v=M7lc1UVf-VE"
 ```
+
+X single-post를 Vite에서 사용하려면 두 terminal에서 API와 Vite를 실행한다.
+
+```bash
+npm run dev:api
+npm run dev
+```
+
+브라우저에서 Vite URL을 열고 X 탭을 선택한 뒤 public status URL을 입력한다. 개발 server는 `/api`를 `127.0.0.1:8787`로 proxy한다. X keyword, 전체 탭, YouTube와 Instagram submit은 아직 실제 수집 기능이 아니다.
 
 X account live 명령은 자격증명 전제조건이 충족된 환경에서만 사용한다.
 
@@ -67,24 +79,20 @@ npm run collect:x-account -- "@jack" --limit 20 \
 ## Architecture
 
 ```text
-Vite UI (현재 mock)
-        │
-        ├── X single post
-        │     public HTML / metadata
-        │     → normalized X JSON
-        │     → selective Playwright fallback
-        │
-        ├── X account
-        │     twitter-cli discovery
-        │     → optional known-ID filtering / bounded early stop
-        │     → collectXPost() hydration
-        │
-        └── YouTube single video
-              yt-dlp metadata
-              → normalized YouTube JSON
+Vite X tab
+  → POST /api/x/post
+  → Node HTTP API
+  → collectXPost()
+  → public HTML metadata
+  → normalized X JSON
+  → safe DOM rendering
+
+Collector only, not yet connected:
+  X account → twitter-cli discovery → collectXPost() hydration
+  YouTube single video → yt-dlp metadata
 ```
 
-향후 frontend integration 시에도 collector와 UI 사이에는 명시적인 backend/API 경계를 둔다. Vite client가 external CLI를 직접 실행하는 구조로 만들지 않는다.
+개발은 collector → deterministic → live → API → Vite의 vertical slice로 진행한다. Vite client가 external CLI, Node collector 또는 credential을 직접 실행/보유하지 않는다.
 
 ## Repository records
 

@@ -7,18 +7,27 @@
 - **Repository:** 2026-08-31 PR #2의 collector implementation과 `HANDOFF.md`가 `main`에 병합되었다. collector 병합 commit은 `6ec2f689fe5b73c1e482f767cd938d6dc0a12336`이다.
 - **Governance:** canonical records는 `project-blueprint → AGENTS → agent-writing-rules → progress → changelog → debug-log` 구조로 유지하지만, 2026-09-01부터 매 task의 전수 검토를 기본 절차로 사용하지 않는다. 현재 task에 직접 필요한 canonical 규칙만 최소 확인하고 구현을 우선한다.
 - **Development policy:** 기본 흐름은 `MINIMAL PREFLIGHT → IMPLEMENT → TARGETED TEST → INTEGRATE → RECORD`다. 기능 하나가 완료되면 해당 기능을 바로 backend/API와 Vite에 연결해 대응 mock을 실제 기능으로 교체한다. 오류가 발생하면 그 실패 지점부터 targeted debugging을 수행하고 필요할 때만 검토 범위를 넓힌다.
-- **X single post:** HTTP-first public metadata collector와 selective Playwright fallback이 구현됐다. `https://x.com/jack/status/20`의 실제 E2E 성공 이력이 있다.
+- **X single post:** HTTP-first collector가 현재 X의 public `article:published_time` metadata를 지원한다. CLI, minimal Node API `POST /api/x/post`, Vite proxy와 실제 browser UI E2E가 `https://x.com/jack/status/20`에서 PASS했다.
 - **X account:** `twitter-cli` discovery adapter와 sequential single-post hydration이 구현되고 deterministic tests를 통과한 이력이 있다. `Vulter3653/x_scrapper`의 안전한 증분 패턴을 참고해 known post ID skip, opt-in consecutive-existing early stop, `collection_state.stop_reason` audit가 추가됐다. explicit `TWITTER_AUTH_TOKEN`/`TWITTER_CT0`이 없어 live account E2E는 여전히 `SKIP` 상태다.
-- **YouTube:** yt-dlp single-video metadata adapter와 deterministic tests가 구현됐다. 마지막 Codex Cloud live 검증에서는 `www.youtube.com`, `youtube.com`, `youtu.be` CONNECT가 Envoy 403으로 차단돼 normalized live JSON은 미검증이다.
+- **YouTube:** yt-dlp single-video metadata adapter와 deterministic tests가 구현됐다. 현재 environment의 세 public hostname connectivity는 HTTP 200이지만 yt-dlp가 없어 live extraction은 `SKIP`; 이전 Codex Cloud CONNECT 403은 historical evidence다.
 - **Browser:** Playwright 1.62 + project-local Chrome for Testing fallback 구조가 있다. 과거 Codex Cloud의 Playwright CDN 403 및 Chromium proxy-CA trust 문제에 대한 해결 이력이 있다.
 - **Instagram:** collector가 없다. local/desktop execution model을 우선 결정해야 한다.
-- **UI:** responsive SNS Scope dashboard scaffold가 있으나 데이터와 channel status는 mock이다. collector와 연결되지 않았다. 앞으로는 완성된 기능마다 해당 mock을 순차적으로 실제 기능으로 전환한다.
-- **Backend/storage:** API, database, persistence, scheduler는 아직 없다. 따라서 account incremental state는 현재 결과 JSON/CLI 수준이며 persistent checkpoint store는 아직 구현하지 않았다.
-- **다음 우선순위:** 장시간 사전 검토나 전체 regression을 반복하지 않고, 현재 선택된 vertical slice를 바로 구현한다. 현재 환경에서 발생하는 오류는 해당 단계에서만 디버깅한다.
+- **UI:** X 탭의 single-post URL flow는 actual API result를 안전한 DOM text로 렌더링한다. aggregate metrics/recent collection은 demo로 명시했고 YouTube/Instagram은 미연결 상태를 표시한다.
+- **Backend/storage:** X single-post 전용 built-in Node HTTP API가 있다. database, persistence, scheduler는 없으며 결과는 응답 후 저장하지 않는다.
+- **Development order:** 최소 preflight 후 collector → targeted deterministic → live → API → Vite → records의 vertical slice 원칙을 사용한다. 다음 후보는 YouTube single video이며 yt-dlp availability와 live mapping을 먼저 검증한다.
 
 ## Technical execution notes
 
 아래 항목은 당시 상태를 보존한다. 최신 판단은 위 현재 상태와 `project-blueprint.md`를 따른다.
+
+## 2026-09-01 — X single-post vertical slice completed
+
+- Fixed: Current X public HTML exposes the machine-readable timestamp as Open Graph `article:published_time`; the HTTP-first parser now consumes that field instead of falling through to a blocked browser navigation. (codex)
+- Added: Introduced a dependency-free Node HTTP endpoint `POST /api/x/post` with strict JSON validation, existing X URL validation, sanitized errors, and injected deterministic tests. (codex)
+- Added: Connected the Vite X tab to the API with idle/loading/success/error states, safe text rendering, canonical result link, and `—` for unknown metrics. (codex)
+- Changed: Marked aggregate dashboard data as demo and replaced misleading channel status copy while preserving YouTube and Instagram as unconnected scope. (codex)
+- Validation: Confirmed X live CLI JSON, API live response, and actual Vite browser rendering against `https://x.com/jack/status/20`; deterministic X/account/YouTube/API/UI, browser smoke, build, and governance regressions passed. (codex)
+- State: Adopted vertical slices so each collector feature proceeds through live evidence, API, and Vite before the next feature begins. VERSION remains 0.1.0 while the feature is recorded under Unreleased. (codex)
 
 ## 2026-09-01 — Development-first, low-review workflow adopted
 
