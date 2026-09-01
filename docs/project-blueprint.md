@@ -1,6 +1,6 @@
 # Project Blueprint: SNS Scraper
 
-Updated: 2026-08-31
+Updated: 2026-09-01
 
 이 문서는 프로젝트 목표, architecture, 지원범위, 상태와 보안경계를 기록하는 **canonical source of truth**다. 실행 이력은 `docs/progress.md`, 오류·blocker는 `docs/debug-log.md`, 작업 규칙은 `AGENTS.md`에 분리한다.
 
@@ -8,7 +8,7 @@ Updated: 2026-08-31
 
 X, YouTube, Instagram의 공개 콘텐츠를 플랫폼별 collector로 수집하고 공통된 웹 UI에서 조회·분석할 수 있는 구조를 구축한다.
 
-현재 우선순위는 플랫폼별 collector를 독립적으로 검증한 뒤 공통 backend/API와 UI로 통합하는 것이다.
+현재 개발 방식은 **기능별 vertical slice**를 우선한다. 하나의 collector 기능을 구현·검증하면 해당 기능을 바로 backend/API와 Vite에 연결해 대응 mock을 실제 기능으로 교체한 뒤 다음 기능으로 이동한다.
 
 ## 2. Architecture 원칙
 
@@ -28,6 +28,27 @@ Storage / Export
 ```
 
 현재 repository는 아직 backend API/storage layer가 없으며 CLI collector와 mock Vite UI가 공존한다. Vite client가 external CLI나 credential을 직접 실행/보유하는 구조로 만들지 않는다.
+
+### 개발 및 통합 순서
+
+기본 순서는 다음과 같다.
+
+```text
+MINIMAL PREFLIGHT
+→ IMPLEMENT ONE FEATURE
+→ TARGETED TEST
+→ LIVE VALIDATE IF REQUIRED
+→ CONNECT THAT FEATURE TO API/VITE
+→ REPLACE CORRESPONDING MOCK
+→ RECORD
+→ NEXT FEATURE
+```
+
+모든 collector를 먼저 완성한 뒤 한 번에 frontend를 연결하지 않는다. 기능 하나가 완료될 때마다 실제 Vite 기능으로 전환한다.
+
+비용 최소화를 위해 사전 전수 검토, 전체 repository audit, 광범위한 외부 reference 비교는 기본 개발 단계가 아니다. 현재 기능의 직접 코드와 dependency만 확인하고 구현을 우선한다. 오류가 발생하면 실패 지점부터 targeted debugging을 수행하고, 해결되지 않을 때만 runtime/network/architecture 검토 범위를 넓힌다.
+
+보안, destructive Git operation, 데이터 손실 가능성이 있는 migration 등 사전 검토 실패 비용이 큰 작업은 필요한 최소 안전 검토를 유지한다.
 
 ## 3. 현재 구현 범위
 
@@ -118,6 +139,8 @@ Agent Reach 조사에서 OpenCLI + 사용자가 이미 로그인한 desktop Chro
 
 현재 표시되는 metrics, 최근 수집, 사용자 정보, `정상 연동` 상태는 hard-coded mock이며 실제 collector 결과가 아니다.
 
+완성된 collector 기능은 가능한 다음 vertical slice에서 바로 Vite 실제 기능으로 전환한다. 전체 mock dashboard를 한 번에 교체하지 않는다.
+
 ## 4. Normalization 원칙
 
 - 플랫폼 source URL과 canonical URL을 분리한다.
@@ -135,7 +158,7 @@ Agent Reach 조사에서 OpenCLI + 사용자가 이미 로그인한 desktop Chro
 - Playwright/Chrome for Testing: X browser fallback 및 browser smoke validation
 - Agent Reach: upstream tool 선택, 설치/doctor 참고. production runtime framework가 아님
 
-외부 CLI 설치는 container/session을 넘어서 보존된다고 가정하지 않는다.
+외부 CLI 설치는 container/session을 넘어서 보존된다고 가정하지 않는다. 해당 기능 구현/실행 시 필요할 때만 설치 여부와 버전을 확인한다.
 
 ## 6. 테스트 계층
 
@@ -152,6 +175,8 @@ Playwright/Chrome 실행 가능 여부만 검증한다. 특정 플랫폼 live �
 실제 공개 URL에서 collector 전체 흐름이 성공해야 한다. 외부 blocker가 있으면 `BLOCKED` 또는 `SKIP`으로 기록한다.
 
 세 계층의 결과를 서로 대체하지 않는다.
+
+검증은 변경 기능의 targeted test부터 실행한다. 전체 browser/platform regression은 shared code 또는 runtime contract를 변경했거나 오류가 발생했을 때 범위를 확대한다.
 
 ## 7. 보안 경계
 
@@ -191,12 +216,21 @@ Deferred 항목은 현재 구현된 것으로 표시하지 않는다.
 
 ## 9. 다음 단계 승격 조건
 
-플랫폼 기능을 다음 phase로 확장하기 전에 현재 phase가 해당 환경에서 실제로 검증되어야 한다.
+개발은 가능한 한 하나의 기능을 end-to-end로 완성하는 순서로 진행한다.
 
-- X account 확장: credentials가 명시적으로 제공된 환경에서 제한된 live discovery + hydration 확인
-- YouTube 확장: public single-video live metadata + normalized JSON 확인
-- Instagram: local/desktop execution model과 credential boundary 확정
-- frontend integration: backend API contract 정의 후 연결
+현재 우선 원칙:
+
+- 이미 collector가 존재하는 기능은 불필요한 재검토보다 현재 환경에서 필요한 수정/실행을 우선한다.
+- collector가 실제 기능으로 완료되면 최소 backend/API를 추가하고 바로 Vite의 해당 mock을 교체한다.
+- 오류가 없는 기능에 대해 예방적 전수조사나 전체 architecture 재검토를 반복하지 않는다.
+- 오류가 발생하면 해당 failure path만 먼저 디버깅한다.
+
+기능별 조건:
+
+- X single post: 현재 환경에서 필요한 live 정상화 후 API/Vite 연결
+- YouTube single video: yt-dlp 실행 환경 확보 및 live metadata 확인 후 API/Vite 연결
+- X account: credentials가 명시적으로 제공된 환경에서 제한된 live discovery + hydration 확인 후 API/Vite 연결
+- Instagram: local/desktop execution model과 credential boundary 확정 후 collector 구현 및 바로 UI 연결
 
 ## 10. 버전과 기록
 
