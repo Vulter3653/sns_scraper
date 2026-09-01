@@ -5,19 +5,28 @@
 ## 현재 상태 — VERSION 0.1.0
 
 - **Repository:** 2026-08-31 PR #2의 collector implementation과 `HANDOFF.md`가 `main`에 병합되었다. collector 병합 commit은 `6ec2f689fe5b73c1e482f767cd938d6dc0a12336`이다.
-- **Governance:** canonical records는 `project-blueprint → AGENTS → agent-writing-rules → progress → changelog → debug-log` 순서로 확인한다. PR to `main`에는 changelog attribution, required progress update, version consistency와 protected-history integrity를 검사하는 자동 governance workflow가 구성되어 있다.
+- **Governance:** canonical records는 `project-blueprint → AGENTS → agent-writing-rules → progress → changelog → debug-log` 구조로 유지하지만, 2026-09-01부터 매 task의 전수 검토를 기본 절차로 사용하지 않는다. 현재 task에 직접 필요한 canonical 규칙만 최소 확인하고 구현을 우선한다.
+- **Development policy:** 기본 흐름은 `MINIMAL PREFLIGHT → IMPLEMENT → TARGETED TEST → INTEGRATE → RECORD`다. 기능 하나가 완료되면 해당 기능을 바로 backend/API와 Vite에 연결해 대응 mock을 실제 기능으로 교체한다. 오류가 발생하면 그 실패 지점부터 targeted debugging을 수행하고 필요할 때만 검토 범위를 넓힌다.
 - **X single post:** HTTP-first public metadata collector와 selective Playwright fallback이 구현됐다. `https://x.com/jack/status/20`의 실제 E2E 성공 이력이 있다.
 - **X account:** `twitter-cli` discovery adapter와 sequential single-post hydration이 구현되고 deterministic tests를 통과한 이력이 있다. `Vulter3653/x_scrapper`의 안전한 증분 패턴을 참고해 known post ID skip, opt-in consecutive-existing early stop, `collection_state.stop_reason` audit가 추가됐다. explicit `TWITTER_AUTH_TOKEN`/`TWITTER_CT0`이 없어 live account E2E는 여전히 `SKIP` 상태다.
 - **YouTube:** yt-dlp single-video metadata adapter와 deterministic tests가 구현됐다. 마지막 Codex Cloud live 검증에서는 `www.youtube.com`, `youtube.com`, `youtu.be` CONNECT가 Envoy 403으로 차단돼 normalized live JSON은 미검증이다.
 - **Browser:** Playwright 1.62 + project-local Chrome for Testing fallback 구조가 있다. 과거 Codex Cloud의 Playwright CDN 403 및 Chromium proxy-CA trust 문제에 대한 해결 이력이 있다.
 - **Instagram:** collector가 없다. local/desktop execution model을 우선 결정해야 한다.
-- **UI:** responsive SNS Scope dashboard scaffold가 있으나 데이터와 channel status는 mock이다. collector와 연결되지 않았다.
+- **UI:** responsive SNS Scope dashboard scaffold가 있으나 데이터와 channel status는 mock이다. collector와 연결되지 않았다. 앞으로는 완성된 기능마다 해당 mock을 순차적으로 실제 기능으로 전환한다.
 - **Backend/storage:** API, database, persistence, scheduler는 아직 없다. 따라서 account incremental state는 현재 결과 JSON/CLI 수준이며 persistent checkpoint store는 아직 구현하지 않았다.
-- **다음 우선순위:** 새 실행환경에서 전체 deterministic/browser/build regression을 확인한 뒤, YouTube egress가 가능하면 single-video live mapping을 검증한다. X account는 credentials가 명시적으로 제공될 때만 제한된 live E2E를 실행한다.
+- **다음 우선순위:** 장시간 사전 검토나 전체 regression을 반복하지 않고, 현재 선택된 vertical slice를 바로 구현한다. 현재 환경에서 발생하는 오류는 해당 단계에서만 디버깅한다.
 
 ## Technical execution notes
 
 아래 항목은 당시 상태를 보존한다. 최신 판단은 위 현재 상태와 `project-blueprint.md`를 따른다.
+
+## 2026-09-01 — Development-first, low-review workflow adopted
+
+- Changed: Codex/agent task 기본 흐름을 전수 검토 중심에서 `MINIMAL PREFLIGHT → IMPLEMENT → TARGETED TEST → INTEGRATE → RECORD`로 변경했다. (codex)
+- Changed: Repository-wide audit, 외부 reference 재검토, 전체 regression 선실행은 기본 단계에서 제외하고 직접 수정 대상과 dependency만 확인하도록 했다. (codex)
+- Changed: 오류가 발생하면 실패한 command/path에서 시작해 direct dependency, runtime/network, broader architecture 순으로 필요한 만큼만 디버깅하도록 했다. (codex)
+- Changed: 모든 collector 완성 후 일괄 UI 연결 대신 기능 하나가 완료될 때마다 해당 Vite mock을 실제 기능으로 교체하는 vertical-slice 원칙을 canonical workflow로 기록했다. (codex)
+- Preserved: 보안 경계, destructive Git/data-loss 위험에 대한 최소 안전 검토, historical integrity, governance CI는 비용 절감 대상에서 제외하지 않는다. (codex)
 
 ## 2026-08-31 — Safe incremental X patterns reused from x_scrapper
 
