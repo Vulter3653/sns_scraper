@@ -1,26 +1,63 @@
 # Agent Operating Guide
 
-Updated: 2026-08-31
+Updated: 2026-09-01
 
 이 문서는 `sns_scraper`에서 사람과 Codex/agent가 따라야 하는 운영 규칙이다. 프로젝트 상태는 대화 기억보다 저장소 기록을 우선한다.
 
 ## 1. 새 작업 시작 순서
 
-새 세션 또는 새 작업의 첫 단계에서 다음을 확인한다.
+새 세션 또는 새 작업의 첫 단계에서는 **필요한 범위만 최소 확인**한다.
+
+기본 preflight는 다음으로 제한한다.
 
 1. `git status --short --branch`
-2. 현재 branch, `HEAD`, `origin/main`, 최근 commit/PR 상태
-3. 아래 canonical 문서를 순서대로 읽는다.
-   1. `docs/project-blueprint.md`
-   2. `AGENTS.md`
-   3. `docs/agent-writing-rules.md`
-   4. `docs/progress.md`
-   5. `CHANGELOG.md`
-   6. `docs/debug-log.md` — 관련 장애나 blocker가 있을 때
-4. `package.json`, lockfile, task 관련 collector/test를 확인한다.
-5. 외부 CLI가 필요한 경우 설치를 가정하지 말고 `command -v`와 버전을 확인한다.
+2. 현재 branch, `HEAD`, `origin/main` 확인
+3. `docs/project-blueprint.md`, `AGENTS.md`에서 현재 task와 직접 관련된 규칙만 확인
+4. task가 닿는 collector/API/UI/test 파일만 확인
+5. 외부 CLI가 실제 task에 필요할 때만 `command -v`와 버전을 확인
 
-`HANDOFF.md`는 과거 실행상태를 보존하는 인수인계 기록이다. 현재 canonical 상태와 충돌하면 위 문서들이 우선한다.
+`docs/progress.md`, `CHANGELOG.md`, `docs/debug-log.md`, `HANDOFF.md`의 전수 검토는 기본 시작 절차가 아니다. 다음 경우에만 필요한 부분을 읽는다.
+
+- 현재 상태 또는 과거 결정이 불명확할 때
+- 기존 구현과 충돌할 가능성이 있을 때
+- 오류/blocker가 발생했을 때
+- 사용자가 명시적으로 audit/review를 요청했을 때
+
+`HANDOFF.md`는 과거 실행상태를 보존하는 인수인계 기록이다. 현재 canonical 상태와 충돌하면 `project-blueprint.md`와 `AGENTS.md`가 우선한다.
+
+### 개발 우선 / 비용 최소화 원칙
+
+기본 작업 모드는 **review-first가 아니라 development-first**다.
+
+```text
+MINIMAL PREFLIGHT → IMPLEMENT → TARGETED TEST → INTEGRATE → RECORD
+```
+
+- 이미 요구사항과 구현 대상이 명확하면 장시간 repository 전수조사, 유사 저장소 재검토, 전체 dependency 조사부터 시작하지 않는다.
+- 구현 전에 필요한 확인은 해당 기능의 입력/출력, 직접 dependency, 수정 대상 파일에 한정한다.
+- 정상 경로에서는 설계 검토 보고서나 광범위한 진단 문서를 만들기보다 동작하는 코드를 우선한다.
+- 기능 하나가 완성되면 가능한 한 바로 Vite의 대응 mock을 실제 기능으로 교체한다. 모든 collector를 완성한 뒤 한 번에 연결하지 않는다.
+- 오류가 발생한 경우에만 실패 지점에서 시작해 원인 범위를 단계적으로 넓힌다.
+
+디버깅 순서는 다음을 기본으로 한다.
+
+```text
+FAILED STEP
+→ DIRECT INPUT/OUTPUT
+→ DIRECT DEPENDENCY
+→ RUNTIME/NETWORK/ENVIRONMENT
+→ BROADER ARCHITECTURE ONLY IF STILL NEEDED
+```
+
+다음은 **기본적으로 하지 않는다**.
+
+- 기능 구현 전 저장소 전체 전수조사
+- 이미 확인한 외부 reference repository의 반복 검토
+- 관련 없는 전체 regression의 선실행
+- 오류가 없는 상태에서의 예방적 대규모 리팩터링
+- 명확한 증거 없이 여러 대안 구현을 동시에 비교
+
+단, 보안 경계, 데이터 손실 위험, destructive Git operation, schema migration처럼 사전 확인 실패의 비용이 큰 작업은 필요한 최소 안전 검토를 생략하지 않는다.
 
 ## 2. 중단 작업 복구
 
@@ -98,11 +135,13 @@ Mock UI의 숫자, 최근 수집 목록, `정상 연동` 문구는 실제 backen
 
 ## 6. Reuse-before-create
 
-새 collector, parser, runner, adapter, test helper를 만들기 전에 다음 순서를 따른다.
+새 collector, parser, runner, adapter, test helper가 필요할 때는 **현재 repository의 직접 관련 구현을 먼저 재사용**한다.
 
 ```text
-SEARCH → REUSE → EXTEND → REFACTOR → CREATE NEW
+DIRECT REUSE → EXTEND → CREATE NEW
 ```
+
+광범위한 외부 검색/유사 저장소 비교는 기본 절차가 아니다. 현재 구현으로 진행하다가 실제 기능 gap이나 오류가 발견됐을 때만 필요한 reference를 조사한다.
 
 - X account hydration은 기존 `collectXPost()`를 재사용한다.
 - X public HTML transport/parser와 browser fallback을 중복 구현하지 않는다.
@@ -111,12 +150,13 @@ SEARCH → REUSE → EXTEND → REFACTOR → CREATE NEW
 
 ## 7. Scope discipline
 
-작업 시작 시 현재 요청을 만족하는 최소 변경범위를 정한다.
+작업 시작 시 현재 요청을 만족하는 최소 변경범위를 정하고 바로 구현한다.
 
-- unrelated refactor, formatting sweep, dependency upgrade, UI 수정은 같은 PR에 섞지 않는다.
-- 변경범위를 확대해야 하면 실제 dependency 또는 blocker를 근거로 하고 progress/PR에 이유를 남긴다.
-- 한 task branch는 하나의 논리적 변경을 목표로 한다.
-- `git diff --stat`, `git diff --name-only`로 PR 전에 실제 changed scope를 확인한다.
+- unrelated refactor, formatting sweep, dependency upgrade는 같은 PR에 섞지 않는다.
+- 기능 하나가 완성되면 그 기능에 필요한 API/Vite 연결까지 같은 vertical slice에서 수행하는 것을 우선한다.
+- 변경범위를 확대해야 하면 실제 dependency 또는 blocker를 근거로 한다.
+- 한 task branch는 하나의 논리적 기능 또는 정책 변경을 목표로 한다.
+- 광범위한 diff review는 기본 단계가 아니며, merge 전 changed-file 범위와 필수 기록 정도만 확인한다.
 - 생성 파일보다 기존 canonical implementation의 확장을 우선한다.
 
 ## 8. 플랫폼별 현재 원칙
@@ -140,9 +180,10 @@ Primary는 공개 HTML HTTP 수집이고 Playwright는 제한된 fallback이다.
 ## 9. 외부 요청과 blocker
 
 - 동일 endpoint의 알려진 403/429/CONNECT 차단을 한 세션에서 반복하지 않는다.
+- 정상 경로에서 사전 네트워크 진단을 과도하게 수행하지 않는다. 실제 요청이 실패하면 해당 오류부터 진단한다.
 - blocker가 application code 이전 계층이면 증거 없이 collector를 수정하지 않는다.
 - 새로운 hostname/permission 요구는 실제 로그 증거가 있을 때만 추가한다.
-- 외부 tool 버전은 세션마다 달라질 수 있으므로 PATH/버전을 재확인한다.
+- 외부 tool 버전은 해당 tool이 현재 task에서 실제로 필요할 때 확인한다.
 - 장시간 작업은 필요할 때만 bounded retry/checkpoint를 사용한다.
 
 ## 10. 보안 및 자격증명
@@ -158,7 +199,7 @@ Primary는 공개 HTML HTTP 수집이고 Playwright는 제한된 fallback이다.
 - proxy credential
 - 환경별 CA/NSS database
 
-credential preflight는 `present`/`missing`만 기록한다. secret은 command argument보다 환경변수/secret store를 사용한다.
+credential preflight는 필요한 기능을 실행할 때 `present`/`missing`만 기록한다. secret은 command argument보다 환경변수/secret store를 사용한다.
 
 다음 우회는 기본적으로 금지한다.
 
@@ -180,33 +221,40 @@ credential preflight는 `present`/`missing`만 기록한다. secret은 command a
 
 ## 12. 변경 및 검증 범위
 
-변경된 범위만 우선 검증하되 기존 핵심 regression을 보존한다.
+비용과 실행시간을 줄이기 위해 **검증도 단계적으로 수행**한다.
 
-기본 검증 명령:
+### 기본 성공 경로
 
-```bash
-npm ci
-npm run install:browser
-npm run test:browser
-npm run test:x
-npm run test:x-account
-npm run test:youtube
-npm run build
-git diff --check
-npm run validate:records
-```
+구현 직후에는 변경 기능에 직접 대응하는 최소 deterministic test와 build/type/syntax check만 실행한다.
 
-실제 X single-post live regression이 가능한 환경에서는 다음 기준을 사용한다.
+예:
 
 ```text
-https://x.com/jack/status/20
-post_id = 20
-author.username = jack
-text = just setting up my twttr
-published_at = 2006-03-21T20:50:14.000Z
+X single-post 변경 → test:x + 관련 API/UI test
+X account 변경 → test:x-account
+YouTube 변경 → test:youtube
+Vite 변경 → 관련 UI test + build
 ```
 
-외부 전제조건이 없는 deterministic test는 변경 후 반드시 실행한다. 외부 blocker 때문에 live test를 못 하면 `BLOCKED`/`SKIP`으로 기록하고 fixture로 대체하지 않는다.
+전체 browser install/smoke, 모든 플랫폼 test, live probe, 환경 진단을 매 작업 시작/중간에 반복하지 않는다.
+
+### 오류 발생 시
+
+해당 실패를 재현하는 가장 작은 test/command부터 디버깅한다. 원인이 해결되지 않을 때만 주변 regression, runtime, network, external-tool 검토로 확대한다.
+
+### merge 전
+
+의미 있는 기능 변경은 다음 최소 공통 검증을 수행한다.
+
+```bash
+git diff --check
+npm run validate:records
+npm run build
+```
+
+그리고 변경 기능의 직접 test를 반드시 포함한다. 전체 플랫폼 regression은 공통 코드, shared dependency, build/runtime contract를 건드렸거나 실제 오류 징후가 있을 때 수행한다.
+
+live validation은 기능의 완료 판정에 실제로 필요할 때 수행하되, 이미 같은 환경/코드에서 확보된 유효한 evidence를 이유 없이 반복하지 않는다. 외부 blocker 때문에 못 하면 `BLOCKED`/`SKIP`으로 기록한다.
 
 ## 13. Git 및 PR 정책
 
@@ -216,14 +264,14 @@ published_at = 2006-03-21T20:50:14.000Z
 - 성공적인 일반 변경의 기본 완료 흐름은 다음이다.
 
 ```text
-VALIDATE → COMMIT → PUSH → PR → MERGE → VERIFY MAIN
+IMPLEMENT → TARGETED VALIDATE → COMMIT → PUSH → PR → MERGE → VERIFY MAIN
 ```
 
-PR은 `.github/pull_request_template.md`의 scope, records, verification, live-validation 항목을 채운다.
-`Governance rules` check가 실패하면 원인을 수정하고, required check/review가 있으면 우회하지 않는다.
+PR은 `.github/pull_request_template.md`의 scope, records, verification, live-validation 항목을 실제 수행 범위에 맞게 채운다.
+`Governance rules` check가 실패하면 해당 실패를 디버깅하고, required check/review가 있으면 우회하지 않는다.
 `CODEOWNERS`는 maintainer ownership을 명시하며 branch protection이 활성화된 경우 해당 review 조건을 존중한다.
 
-merge conflict가 있으면 기존 양쪽 history와 파일을 먼저 비교하고, 데이터/기능 손실 없는 최소 해소만 한다.
+merge conflict가 있으면 기존 양쪽 history와 파일을 필요한 범위에서만 비교하고, 데이터/기능 손실 없는 최소 해소만 한다.
 
 ## 14. 기록 갱신 규칙
 
@@ -272,12 +320,15 @@ validator를 통과시키기 위해 실제 기록을 삭제하거나 검사를 �
 
 ## 16. 작업 종료 보고
 
-최종 보고에는 최소 다음을 포함한다.
+최종 보고는 길게 재검토하지 않고 실행 결과 중심으로 작성한다.
+
+최소 포함:
 
 - PASS / PARTIAL PASS / BLOCKED
-- 변경 파일
-- 실행한 검증과 실행하지 못한 검증
-- external operation 및 credential 사용 여부
+- 구현/변경 파일
+- 직접 실행한 targeted test
+- 오류가 있었다면 원인과 수정
 - commit/branch/PR/main SHA
-- 남은 blocker와 다음 actionable step
-- live 검증과 fixture 검증의 구분
+- 남은 blocker와 다음 구현 step
+
+실행하지 않은 광범위한 검토 항목을 형식적으로 채우기 위해 추가 작업하지 않는다.
