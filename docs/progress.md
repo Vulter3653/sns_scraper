@@ -5,7 +5,8 @@
 ## 현재 상태 — VERSION 0.1.0
 
 - **Repository:** 2026-08-31 PR #2의 collector implementation과 `HANDOFF.md`가 `main`에 병합되었다. collector 병합 commit은 `6ec2f689fe5b73c1e482f767cd938d6dc0a12336`이다.
-- **Governance:** canonical records는 `project-blueprint → AGENTS → agent-writing-rules → progress → changelog → debug-log` 순서로 확인한다. PR to `main`에는 changelog attribution, required progress update, version consistency와 protected-history integrity를 검사하는 자동 governance workflow가 구성되어 있다.
+- **Governance:** canonical records는 `project-blueprint → AGENTS → agent-writing-rules → progress → changelog → debug-log` 구조로 유지하지만, 2026-09-01부터 매 task의 전수 검토를 기본 절차로 사용하지 않는다. 현재 task에 직접 필요한 canonical 규칙만 최소 확인하고 구현을 우선한다.
+- **Development policy:** 기본 흐름은 `MINIMAL PREFLIGHT → IMPLEMENT → TARGETED TEST → INTEGRATE → RECORD`다. 기능 하나가 완료되면 해당 기능을 바로 backend/API와 Vite에 연결해 대응 mock을 실제 기능으로 교체한다. 오류가 발생하면 그 실패 지점부터 targeted debugging을 수행하고 필요할 때만 검토 범위를 넓힌다.
 - **X single post:** HTTP-first collector가 현재 X의 public `article:published_time` metadata를 지원한다. CLI, minimal Node API `POST /api/x/post`, Vite proxy와 실제 browser UI E2E가 `https://x.com/jack/status/20`에서 PASS했다.
 - **X account:** `twitter-cli` discovery adapter와 sequential single-post hydration이 구현되고 deterministic tests를 통과한 이력이 있다. `Vulter3653/x_scrapper`의 안전한 증분 패턴을 참고해 known post ID skip, opt-in consecutive-existing early stop, `collection_state.stop_reason` audit가 추가됐다. explicit `TWITTER_AUTH_TOKEN`/`TWITTER_CT0`이 없어 live account E2E는 여전히 `SKIP` 상태다.
 - **YouTube:** yt-dlp single-video metadata adapter와 deterministic tests가 구현됐다. 현재 environment의 세 public hostname connectivity는 HTTP 200이지만 yt-dlp가 없어 live extraction은 `SKIP`; 이전 Codex Cloud CONNECT 403은 historical evidence다.
@@ -13,7 +14,7 @@
 - **Instagram:** collector가 없다. local/desktop execution model을 우선 결정해야 한다.
 - **UI:** X 탭의 single-post URL flow는 actual API result를 안전한 DOM text로 렌더링한다. aggregate metrics/recent collection은 demo로 명시했고 YouTube/Instagram은 미연결 상태를 표시한다.
 - **Backend/storage:** X single-post 전용 built-in Node HTTP API가 있다. database, persistence, scheduler는 없으며 결과는 응답 후 저장하지 않는다.
-- **Development order:** collector → deterministic → live → API → Vite → regression/records의 vertical slice 원칙을 사용한다. 다음 후보는 YouTube single video이며 yt-dlp availability와 live mapping을 먼저 검증한다.
+- **Development order:** 최소 preflight 후 collector → targeted deterministic → live → API → Vite → records의 vertical slice 원칙을 사용한다. 다음 후보는 YouTube single video이며 yt-dlp availability와 live mapping을 먼저 검증한다.
 
 ## Technical execution notes
 
@@ -27,6 +28,14 @@
 - Changed: Marked aggregate dashboard data as demo and replaced misleading channel status copy while preserving YouTube and Instagram as unconnected scope. (codex)
 - Validation: Confirmed X live CLI JSON, API live response, and actual Vite browser rendering against `https://x.com/jack/status/20`; deterministic X/account/YouTube/API/UI, browser smoke, build, and governance regressions passed. (codex)
 - State: Adopted vertical slices so each collector feature proceeds through live evidence, API, and Vite before the next feature begins. VERSION remains 0.1.0 while the feature is recorded under Unreleased. (codex)
+
+## 2026-09-01 — Development-first, low-review workflow adopted
+
+- Changed: Codex/agent task 기본 흐름을 전수 검토 중심에서 `MINIMAL PREFLIGHT → IMPLEMENT → TARGETED TEST → INTEGRATE → RECORD`로 변경했다. (codex)
+- Changed: Repository-wide audit, 외부 reference 재검토, 전체 regression 선실행은 기본 단계에서 제외하고 직접 수정 대상과 dependency만 확인하도록 했다. (codex)
+- Changed: 오류가 발생하면 실패한 command/path에서 시작해 direct dependency, runtime/network, broader architecture 순으로 필요한 만큼만 디버깅하도록 했다. (codex)
+- Changed: 모든 collector 완성 후 일괄 UI 연결 대신 기능 하나가 완료될 때마다 해당 Vite mock을 실제 기능으로 교체하는 vertical-slice 원칙을 canonical workflow로 기록했다. (codex)
+- Preserved: 보안 경계, destructive Git/data-loss 위험에 대한 최소 안전 검토, historical integrity, governance CI는 비용 절감 대상에서 제외하지 않는다. (codex)
 
 ## 2026-08-31 — Safe incremental X patterns reused from x_scrapper
 

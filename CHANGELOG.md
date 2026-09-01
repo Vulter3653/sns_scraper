@@ -2,13 +2,21 @@
 
 > 각 항목은 당시 상태를 보존하는 역사 기록이다. 최신 canonical 상태는 `README.md`, `docs/project-blueprint.md`, `docs/progress.md`를 따른다.
 
-## Unreleased - 2026-08-31
+## Unreleased - 2026-09-01
 
+- Changed: Adopted a development-first, low-review execution policy: minimal task preflight, immediate implementation, targeted tests, then integration/records. (codex)
+- Changed: Repository-wide audits, repeated external-reference review and full regression before implementation are no longer default steps; they are expanded only when an error, blocker or shared-runtime risk provides evidence. (codex)
+- Changed: Debugging now starts from the failed command/path and expands only as needed through direct dependencies, runtime/network and broader architecture. (codex)
+- Changed: Completed features should be connected to the backend/API and Vite immediately so corresponding mocks are replaced incrementally instead of waiting for all collectors to finish. (codex)
+- Preserved: Security boundaries, destructive-operation safeguards, historical integrity and governance validation remain mandatory. (codex)
 - Fixed: Added support for X public Open Graph `article:published_time`, restoring HTTP-first live extraction without browser or private API workarounds. (codex)
 - Added: Added a dependency-free `POST /api/x/post` backend contract with strict request validation, sanitized error mapping, and deterministic API coverage. (codex)
 - Added: Connected the Vite X tab to actual single-post collection with loading, error, safe result rendering, canonical links, and unknown metrics displayed as `—`. (codex)
-- Changed: Adopted collector → live → API → Vite vertical slices and clearly marked remaining dashboard aggregates and platform surfaces as demo/unconnected. (codex)
+- Changed: Applied the vertical-slice policy by clearly marking remaining dashboard aggregates and platform surfaces as demo/unconnected. (codex)
 - Validation: Passed live X CLI, live API, and live Vite browser E2E for `https://x.com/jack/status/20` while preserving X account and YouTube deterministic regressions. (codex)
+
+## Unreleased - 2026-08-31
+
 - Added: Reused the safe incremental-collection pattern from `Vulter3653/x_scrapper` by allowing X account collection to accept known post IDs, skip duplicate hydration, and optionally stop after a bounded number of consecutive known IDs. (codex)
 - Changed: X account results now expose an additive `collection_state` audit object with examined references, known posts seen, consecutive known IDs, early-stop status, and explicit `stop_reason`; default collection behavior remains unchanged when incremental options are omitted. (codex)
 - Added: `collect:x-account` now accepts `--known-ids <newline-id-file>` and opt-in `--stop-on-existing <1-20>` for bounded incremental account runs. (codex)
