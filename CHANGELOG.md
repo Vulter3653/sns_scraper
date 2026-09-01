@@ -2,6 +2,14 @@
 
 > 각 항목은 당시 상태를 보존하는 역사 기록이다. 최신 canonical 상태는 `README.md`, `docs/project-blueprint.md`, `docs/progress.md`를 따른다.
 
+## Unreleased - 2026-09-01
+
+- Changed: Adopted a development-first, low-review execution policy: minimal task preflight, immediate implementation, targeted tests, then integration/records. (codex)
+- Changed: Repository-wide audits, repeated external-reference review and full regression before implementation are no longer default steps; they are expanded only when an error, blocker or shared-runtime risk provides evidence. (codex)
+- Changed: Debugging now starts from the failed command/path and expands only as needed through direct dependencies, runtime/network and broader architecture. (codex)
+- Changed: Completed features should be connected to the backend/API and Vite immediately so corresponding mocks are replaced incrementally instead of waiting for all collectors to finish. (codex)
+- Preserved: Security boundaries, destructive-operation safeguards, historical integrity and governance validation remain mandatory. (codex)
+
 ## Unreleased - 2026-08-31
 
 - Added: Reused the safe incremental-collection pattern from `Vulter3653/x_scrapper` by allowing X account collection to accept known post IDs, skip duplicate hydration, and optionally stop after a bounded number of consecutive known IDs. (codex)
